@@ -160,6 +160,16 @@ class Feed
         $result = $this->mysqli->query("SELECT id FROM feeds WHERE userid = '$userid' AND name = '$name'");
         if ($result->num_rows>0) { $row = $result->fetch_array(); return $row['id']; } else return false;
     }
+
+
+  public function get_usertimezone($feedid)
+  {
+    $feedid = intval($feedid);
+    $result = $this->mysqli->query("select ifnull(u.timezone,0) as tz from users u, feeds f where f.id = $feedid and f.userid = u.id");
+    if ($result->num_rows>0) { $row = $result->fetch_array(); return $row['tz']; } else return false;
+  }
+
+
     /*
 
     User Feed lists

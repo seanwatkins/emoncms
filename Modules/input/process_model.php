@@ -25,6 +25,15 @@ class Process
             $this->feed = $feed;
     }
 
+// Wrapper for date, that takes users timezone into account
+  public function offsetdate ($arg,$value,$feedid) {
+  
+	// we need to return localized value
+	$timeoffset = $this->feed->get_usertimezone($feedid) * 60;
+	return date($arg, $value - $timeoffset);
+
+  }
+
     public function get_process_list()
     {
         $list = array();
@@ -233,7 +242,8 @@ class Process
             $new_kwh = $last_kwh;
         }
 
-        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+#        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+      $feedtime = mktime(0, 0, 0, self::offsetdate("m",$time_now, $feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now, $feedid));
         $this->feed->update_data($feedid, $time_now, $feedtime, $new_kwh);
 
         return $value;
@@ -256,7 +266,8 @@ class Process
 
             $new_kwh = $currentkwhd['value'] + $kwhinc;
 
-            $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+#            $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+        $feedtime = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
             $this->feed->update_data($feedid, $time_now, $feedtime, $new_kwh);
         }
         $redis->hMset("process:kwhtokwhd:$feedid", array('time' => $time_now, 'value' => $value));
@@ -281,7 +292,8 @@ class Process
             $ontime += $time_elapsed;
         }
 
-        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+#        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+      $feedtime = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
         $this->feed->update_data($feedid, $time_now, $feedtime, $ontime);
 
         return $value;
@@ -316,7 +328,8 @@ class Process
         $last = $this->feed->get_timevalue($feedid);
         $new_kwh = $last['value'] + ($value / 1000.0);
 
-        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+#        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+        $feedtime = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
         $this->feed->update_data($feedid, $time_now, $feedtime, $new_kwh);
 
         return $value;
@@ -334,7 +347,9 @@ class Process
     {
         $last = $this->feed->get_timevalue($feedid);
         $value = $last['value'] + $value;
-        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+#        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+        $feedtime = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
+
         $this->feed->update_data($feedid, $time_now, $feedtime, $value);
         return $value;
     }*/
@@ -362,7 +377,8 @@ class Process
 
         $new_value = round($value / $pot, 0, PHP_ROUND_HALF_UP) * $pot;
 
-        $time = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+#        $time = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+        $time = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
 
         // Get the last time
         $lastvalue = $this->feed->get_timevalue($feedid);
@@ -452,8 +468,11 @@ class Process
         $last = $this->feed->get_timevalue($feedid);
         $last_val = $last['value'];
         $last_time = strtotime($last['time']);
-        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
-        $time_check = mktime(0, 0, 0, date("m",$last_time), date("d",$last_time), date("Y",$last_time));
+#        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+        $feedtime = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
+#        $time_check = mktime(0, 0, 0, date("m",$last_time), date("d",$last_time), date("Y",$last_time));        
+	 $time_check = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
+
 
         // Runs on setup and midnight to reset current value - (otherwise db sets 0 as new max)
         if ($time_check != $feedtime) {
@@ -470,8 +489,10 @@ class Process
         $last = $this->feed->get_timevalue($feedid);
         $last_val = $last['value'];
         $last_time = strtotime($last['time']);
-        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
-        $time_check = mktime(0, 0, 0, date("m",$last_time), date("d",$last_time), date("Y",$last_time));
+#        $feedtime = mktime(0, 0, 0, date("m",$time_now), date("d",$time_now), date("Y",$time_now));
+        $feedtime = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
+#        $time_check = mktime(0, 0, 0, date("m",$last_time), date("d",$last_time), date("Y",$last_time));
+        $time_check = mktime(0, 0, 0, self::offsetdate("m",$time_now,$feedid), self::offsetdate("d",$time_now,$feedid), self::offsetdate("Y",$time_now,$feedid));
 
         // Runs on setup and midnight to reset current value - (otherwise db sets 0 as new min)
         if ($time_check != $feedtime) {
